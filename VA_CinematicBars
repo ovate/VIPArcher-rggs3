@@ -1,0 +1,117 @@
+#==============================================================================
+# ■ Cinematic Bars
+#  by：VIPArcher [email: VIPArcher@sina.com]
+#  -- The script comes from http://rm.66rpg.com Please keep the information above.
+#  Feel free to use/ reprint
+#==============================================================================
+# Instructions：
+#  · When creating an event, set a control switch ON to activate the bars.
+#	When you're ready to end the effect, turn the switch off.
+#==============================================================================
+$VIPArcherScript ||= {};$VIPArcherScript[:black_message] = 20150225
+#-------------------------------------------------------------------------------
+module VIPArcher end
+#==============================================================================
+# ★ Settings ★
+#==============================================================================
+module VIPArcher::Black_Message_Layer
+  Z = 1                          # Z value
+  SW = 1                         # control switch ID of fade in/ out
+  Edge = 24                      # gradient height margin
+  Width = 544                    # width
+  Height = 40                    # height filled
+  Black_Color = Color.new(0,0,0) # fill color
+  Oy_Speed = 4                   # fade in/ out of y-axis
+  Opacity_Speed = 16             # change of transparency speed
+end
+#==============================================================================
+# ☆ Set start ☆
+#==============================================================================
+class Sprite_Message_Layer < Sprite
+  include VIPArcher::Black_Message_Layer
+  H = Height + Edge
+  #--------------------------------------------------------------------------
+  # ● Object initialization
+  #--------------------------------------------------------------------------
+  def initialize(pos = false,viewport = nil)
+    super(viewport)
+    @pos = pos
+    self.opacity, self.z = 0 , Z
+    self.oy = @pos ? H : -H
+    set_bitmap
+  end
+  #--------------------------------------------------------------------------
+  # ● Bitmap setup
+  #--------------------------------------------------------------------------
+  def set_bitmap
+    rect1 = Rect.new(0,@pos ? 0  : Edge,Width,Height)
+    rect2 = Rect.new(0,@pos ? Height :  0,Width,Edge)
+    self.bitmap = Bitmap.new(544,H)
+    self.y = Graphics.height - bitmap.height unless @pos
+    color1,color2 = Black_Color,Color.new
+    self.bitmap.fill_rect(rect1, color1)
+    self.bitmap.gradient_fill_rect(rect2, 
+      @pos ? color1 : color2, @pos ? color2 : color1,true)
+  end
+  #--------------------------------------------------------------------------
+  # ● Screen update
+  #--------------------------------------------------------------------------
+  def update
+    update_fadeout unless $game_switches[SW]
+    update_fadein if $game_switches[SW]
+  end
+  #--------------------------------------------------------------------------
+  # ● Fade in refresh
+  #--------------------------------------------------------------------------
+  def update_fadein
+    if oy.abs > 0
+      self.oy += @pos ? -Oy_Speed : Oy_Speed
+      self.opacity += Opacity_Speed
+    end
+  end
+  #--------------------------------------------------------------------------
+  # ● Fade out refresh
+  #--------------------------------------------------------------------------
+  def update_fadeout
+    if oy.abs < H
+      self.oy += @pos ? Oy_Speed : -Oy_Speed
+      self.opacity -= Opacity_Speed
+    end
+  end
+  #--------------------------------------------------------------------------
+  # ● In effect
+  #--------------------------------------------------------------------------
+  def dispose
+    super
+    self.bitmap.dispose
+  end
+end
+class Spriteset_Map
+  #--------------------------------------------------------------------------
+  # ● Creat border
+  #--------------------------------------------------------------------------
+  alias message_layer_sprite_create_timer create_timer
+  def create_timer
+    message_layer_sprite_create_timer
+    @down_message_layer = Sprite_Message_Layer.new(false,@viewport2)
+    @up_message_layer = Sprite_Message_Layer.new(true,@viewport2)
+  end
+  #--------------------------------------------------------------------------
+  # ● In effect
+  #--------------------------------------------------------------------------
+  alias message_layer_sprite_dispose dispose
+  def dispose
+    message_layer_sprite_dispose
+    @up_message_layer.dispose
+    @down_message_layer.dispose
+  end
+  #--------------------------------------------------------------------------
+  # ● Screen update
+  #--------------------------------------------------------------------------
+  alias message_layer_sprite_update update
+  def update
+    message_layer_sprite_update
+    @up_message_layer.update
+    @down_message_layer.update
+  end
+end

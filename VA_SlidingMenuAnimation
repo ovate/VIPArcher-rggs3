@@ -1,0 +1,91 @@
+#==============================================================================
+# ■ VA Sliding Menu Animation
+#  Inspiration： 100 scholarly papers， written in pencil while depicting my thoughts
+# By ：VIPArcher [email: VIPArcher@sina.com]
+#  -- The script comes from http://rm.66rpg.com Please keep the information above.
+#  Feel free to use/ reprint
+#==============================================================================
+# This script features a sliding menu animation.
+# Applies to default menu and item screen.
+#==============================================================================
+$VIPArcherScript ||= {};$VIPArcherScript[:menu_slide] = 20141215
+#==============================================================================
+# ■ Scene_Base
+#==============================================================================
+class Scene_Base
+  #--------------------------------------------------------------------------
+  # ● Start post process
+  #--------------------------------------------------------------------------
+  alias vip_slide_post_start post_start
+  def post_start
+    init_slide
+    vip_slide_post_start
+    slide_start
+  end
+  #--------------------------------------------------------------------------
+  # ● Ready before sliding
+  #--------------------------------------------------------------------------
+  def init_slide ; end
+  #--------------------------------------------------------------------------
+  # ● Window sliding process
+  #--------------------------------------------------------------------------
+  def slide_start ; end
+end
+#-------------------------------------------------------------------------------
+# ■ The part above should not be change
+#==============================================================================
+# 　Menu screen
+#==============================================================================
+class Scene_Menu < Scene_MenuBase
+  #--------------------------------------------------------------------------
+  # ● Ready before sliding
+  # Define the location of each window from the beginning （which is set outside  of the screen）
+  # Which specific window animates in each scene.
+  #--------------------------------------------------------------------------
+  def init_slide
+    @command_window.y -= 150
+    @gold_window.x -= 100
+    @status_window.x = 260
+  end
+  #--------------------------------------------------------------------------
+  # ● Window sliding process
+  #--------------------------------------------------------------------------
+  def slide_start
+    10.times do
+      @command_window.y += 15
+      @gold_window.x    += 10
+      @status_window.x  -= 10
+                      # Coordinates of amount per frames
+      Graphics.update # Refresh window
+    end
+    10.times{|i|
+    @gold_window.x    += 5 * Math.cos(i)
+    @command_window.y += 5 * Math.cos(i)
+    Graphics.update}  # Bounce
+  end
+end
+#==============================================================================
+# 　Item screen
+#==============================================================================
+class Scene_Item < Scene_ItemBase
+  #--------------------------------------------------------------------------
+  # ● Slide preparation
+  #--------------------------------------------------------------------------
+  def init_slide
+    @category_window.x -= 100
+    @item_window.y += 100
+    @help_window.y -= 60
+  end
+  #--------------------------------------------------------------------------
+  # ● Window sliding process
+  #--------------------------------------------------------------------------
+  def slide_start
+    10.times do
+      @category_window.x += 10
+      @item_window.y -= 10
+      @help_window.y += 6
+      # Coordinates of amount per frames
+      Graphics.update # Refresh window
+    end
+  end
+end

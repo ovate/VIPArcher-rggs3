@@ -1,0 +1,141 @@
+#==============================================================================
+# ■ Option Window Cursor
+# By ：VIPArcher [email: VIPArcher@sina.com]
+#  -- The script comes from http://rm.66rpg.com Please keep the information above.
+#  Feel free to use/ reprint
+#==============================================================================
+# Description：
+#     After the script is inserted, Window_Selectable and subclasses will get a cursor
+#     The cursor file is placed under Graphics\System folder, filename: "WindowCursor" 
+#     If the cursor file doesn't exist, it will create a little arrow
+#     from the right side of the window skin as the cursor.
+#==============================================================================
+$VIPArcherScript ||= {};$VIPArcherScript[:window_cursor] = 20150513
+#-------------------------------------------------------------------------------
+module VIPArcher end
+#==============================================================================
+# ★ Settings ★
+#==============================================================================
+module VIPArcher::WindowCursor
+  FILENAME = "WindowCursor"  # Cursor filename (placed under Graphics\System folder)
+  BUFFER_X = 0               # Cursor X coordinate
+  BUFFER_Y = 6               # Cursor Y coordinate
+  EFFECT_TYPE  = 1           # Effects: nil => no effect, 1 => horizontal, 2 => vertical
+  EFFECT_SPEED = 8           # Refresh speed (do not set it to 0)
+  CURSOR_FRAME = 1           # Number of cursor frames
+end
+#==============================================================================
+# ☆ End of the settings ☆
+#==============================================================================
+class Sprite_WindowCursor < Sprite_Base
+  include VIPArcher::WindowCursor
+  #--------------------------------------------------------------------------
+  # initialize
+  #--------------------------------------------------------------------------
+  def initialize(window)
+    super(window.viewport)
+    @window, @effect, self.opacity = window, [0,0,0], 0
+    create_bitmap
+  end
+  #--------------------------------------------------------------------------
+  # create_bitmap
+  #--------------------------------------------------------------------------
+  def create_bitmap
+    begin
+      self.bitmap = Cache.system(FILENAME)
+      @w, @h, @frame = self.bitmap.width / CURSOR_FRAME, self.bitmap.height, 0
+      self.src_rect.set(@frame, 0, @w, @h)
+    rescue
+      self.bitmap = Bitmap.new(10, 16)
+      @w, @h = self.bitmap.width, self.bitmap.height
+      self.bitmap.blt(0, 0,@window.windowskin, Rect.new(102, 24, 10, 16))
+    end
+  end
+  #--------------------------------------------------------------------------
+  # ● update management
+  #--------------------------------------------------------------------------
+  def update
+    super
+    update_visibility
+    update_position
+    update_effect if Graphics.frame_count % EFFECT_SPEED == 0
+  end
+  #--------------------------------------------------------------------------
+  # ● execute
+  #--------------------------------------------------------------------------
+  def dispose
+    self.bitmap.dispose
+    super
+  end
+  #--------------------------------------------------------------------------
+  # ● update effect
+  #--------------------------------------------------------------------------    
+  def update_effect
+    update_src_rect
+    return unless EFFECT_TYPE
+    case @effect[0] += 1
+    when 1..7  then @effect[EFFECT_TYPE] += 1
+    when 8..14 then @effect[EFFECT_TYPE] -= 1
+    else @effect[0] = 0 end
+  end
+  #--------------------------------------------------------------------------
+  # ● update source rectangle
+  #--------------------------------------------------------------------------
+  def update_src_rect
+    return if @w == self.bitmap.width
+    sx = (@frame += 1) % CURSOR_FRAME * @w
+    self.src_rect.set(sx, 0, @w, @h)
+  end
+  #--------------------------------------------------------------------------
+  # ● update visibility
+  #--------------------------------------------------------------------------
+  def update_visibility
+    self.visible = @window.visible
+    self.visible = @window.openness > 250
+    self.opacity += @window.active ? 45 : -45
+    self.opacity = 0 if @window.index < 0
+  end
+  #--------------------------------------------------------------------------
+  # ● Update location
+  #--------------------------------------------------------------------------
+  def update_position
+    rect = @window.cursor_rect
+    self.z = @window.z + 100
+    self.x = @window.x + rect.x - @window.ox + BUFFER_X + @effect[1]
+    self.y = @window.y + rect.y - @window.oy + 
+      BUFFER_Y + rect.height / 2 + @effect[2]
+  end
+end
+#==============================================================================
+class Window_Selectable < Window_Base
+  #--------------------------------------------------------------------------
+  # ● Object initialization
+  #-------------------------------------------------------------------------
+  alias cursor_sprite_initialize initialize
+  def initialize(*args)
+    cursor_sprite_initialize(*args)
+    create_cursor_sprite
+  end
+  #--------------------------------------------------------------------------
+  # ● Cursor creation | Note： If an option window does not require a cursor, you can redefine it by window class
+  #--------------------------------------------------------------------------
+  def create_cursor_sprite
+    @cursor_sprite = Sprite_WindowCursor.new(self)
+  end
+  #--------------------------------------------------------------------------
+  # ● Execute
+  #--------------------------------------------------------------------------
+  alias cursor_sprite_dispose dispose
+  def dispose
+    cursor_sprite_dispose
+    @cursor_sprite.dispose if @cursor_sprite
+  end
+  #--------------------------------------------------------------------------
+  # ● Sprite update
+  #--------------------------------------------------------------------------
+  alias cursor_sprite_update update
+  def update
+    cursor_sprite_update
+    @cursor_sprite.update if @cursor_sprite
+  end
+end

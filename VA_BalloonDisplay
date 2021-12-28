@@ -1,0 +1,123 @@
+#==============================================================================
+# ■ Balloon Display for Event
+# By ：VIPArcher [email: VIPArcher@sina.com]
+#  -- The script comes from http://rm.66rpg.com Please keep the information above.
+#  Feel free to use/ reprint
+#------------------------------------------------------------------------------
+# ■ Instructions：
+#  When commenting <balloon id> on event, the player's head will display a balloon.
+#  Balloon image is directly used from System. (the default balloon can be expanded)
+#==============================================================================
+$VIPArcherScript ||= {};$VIPArcherScript[:remind_balloon] = 20150125
+#-------------------------------------------------------------------------------
+module VIPArcher end
+#==============================================================================
+# ★ Setting ★
+#==============================================================================
+module VIPArcher::Remind
+  SPEED = 4             # speed for balloon display
+  WAIT_TIME = 90        # wait time for final frame
+  FILENAME = "Balloon"  # filename to show the mood
+end
+#==============================================================================
+# ☆ End of setting ☆
+#==============================================================================
+class Sprite_Remind < Sprite_Character
+  include VIPArcher::Remind
+  #--------------------------------------------------------------------------
+  # ● Front of the event
+  #--------------------------------------------------------------------------
+  def event
+    fx = $game_map.round_x_with_direction(character.x, character.direction)
+    fy = $game_map.round_y_with_direction(character.y, character.direction)
+    return $game_map.events_xy(fx, fy)[0]
+  end
+  #--------------------------------------------------------------------------
+  # ● Get the comment from balloon id
+  #--------------------------------------------------------------------------
+  def get_balloon_id(event)
+    return 0 if event.nil? || event.list.nil?
+    event.list.each do |command|
+      if command.code == 108 || command.code == 408
+        command.parameters.each do |line|
+          return $1.to_i if line =~ /<balloon\s*(\d+)>/i
+        end
+      end
+    end ; 0
+  end
+  #--------------------------------------------------------------------------
+  # ● Show balloon icon
+  #--------------------------------------------------------------------------
+  def start_balloon
+    dispose_balloon
+    @balloon_duration = 8 * balloon_speed + balloon_wait
+    @balloon_sprite = ::Sprite.new(viewport)
+    @balloon_sprite.bitmap = Cache.system(FILENAME)
+    @balloon_sprite.ox = 16
+    @balloon_sprite.oy = 32
+    update_balloon
+  end
+  #--------------------------------------------------------------------------
+  # ● Balloon speed
+  #--------------------------------------------------------------------------
+  def balloon_speed ; SPEED end
+  #--------------------------------------------------------------------------
+  # ● Balloon wait time
+  #--------------------------------------------------------------------------
+  def balloon_wait ; WAIT_TIME end
+  #--------------------------------------------------------------------------
+  # ● End balloon display
+  #--------------------------------------------------------------------------
+  def end_balloon
+    dispose_balloon
+    @balloon_id = 0
+  end
+  #--------------------------------------------------------------------------
+  # ● Update position
+  #--------------------------------------------------------------------------
+  def update_position
+    super
+    self.y = @character.screen_y - 32
+  end
+  #--------------------------------------------------------------------------
+  # ● Update screen
+  #--------------------------------------------------------------------------
+  def update
+    super
+    if @balloon_id != get_balloon_id(event)
+      @balloon_id = get_balloon_id(event)
+      start_balloon if @balloon_id > 0
+    end
+  end
+  #--------------------------------------------------------------------------
+  # ● Delete parent class
+  #--------------------------------------------------------------------------
+  def update_bitmap ; end ; def setup_new_effect ; end
+  def end_animation ; end ; def update_src_rect  ; end
+  def update_other  ; end ; def update_other     ; end
+end
+#-------------------------------------------------------------------------------
+class Spriteset_Map
+  #--------------------------------------------------------------------------
+  # ● Create characters reminder
+  #--------------------------------------------------------------------------
+  alias balloon_remind_create_characters create_characters
+  def create_characters
+    balloon_remind_create_characters
+    @remind_sprite = Sprite_Remind.new(@viewport2,$game_player)
+  end
+  #--------------------------------------------------------------------------
+  # ● Update balloon
+  #--------------------------------------------------------------------------
+  alias balloon_remind_update update
+  def update
+    balloon_remind_update ; @remind_sprite.update
+  end
+  #--------------------------------------------------------------------------
+  # ● Delete balloon
+  #--------------------------------------------------------------------------
+  alias balloon_remind_dispose dispose
+  def dispose
+    balloon_remind_dispose ; @remind_sprite.dispose
+  end
+end

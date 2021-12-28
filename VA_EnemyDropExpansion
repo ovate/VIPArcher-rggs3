@@ -1,0 +1,53 @@
+#==============================================================================
+# ■ Enemy Drop Expansion
+# By ：VIPArcher [email: VIPArcher@sina.com]
+#  -- The script comes from http://rm.66rpg.com Please keep the information above.
+#  Feel free to use/ reprint
+#==============================================================================
+# Instructions：
+#   Put <drops kind ID X%> in enemy's note field
+#   Indicator: i => Item
+#              w => Weapons 
+#              a => Armors
+#          ID: Item number index
+#           X： probability (example, 5 is 5%)
+#   Example: <drops w 5 55%> is 55% of dropping a weapon id 5
+#   Note： Remember the id of the # you're putting after kind,
+#	please don't forget to include a space between information.
+#==============================================================================
+$VIPArcherScript ||= {};$VIPArcherScript[:expand_drop] = 20141101
+#--------------------------------------------------------------------------------
+class RPG::Enemy < RPG::BaseItem
+  #--------------------------------------------------------------------------
+  # ● Get notes of expanded drop information
+  #--------------------------------------------------------------------------
+  def get_extra_drop_item
+    expand_drop_item = []
+    self.note.split(/[\r\n]+/).each{ |line|
+      if line =~ /<drops((?:\s+\w+){3})%>/
+        expand_item = $1.lstrip.split(/\s+/)
+        expand_drop_item.push(expand_item)
+      end}
+    return expand_drop_item
+  end
+  #--------------------------------------------------------------------------
+  # ● Create examples of extended drop items
+  #--------------------------------------------------------------------------
+  def make_drop_item(drop_item)
+    return nil if drop_item == []
+    di = RPG::Enemy::DropItem.new
+    di.kind = ["","i","w","a"].index(drop_item[0])
+    di.data_id = drop_item[1].to_i
+    di.denominator = 100 / drop_item[2].to_f
+    return di
+  end
+  #--------------------------------------------------------------------------
+  # ● Create an array of drop item information
+  #--------------------------------------------------------------------------
+  alias extra_drop_items drop_items
+  def drop_items
+    items = extra_drop_items.clone
+    get_extra_drop_item.each{|item| items.push(make_drop_item(item)) if item}
+    return items
+  end
+end
